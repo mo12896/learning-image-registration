@@ -2,26 +2,39 @@ import os
 
 import SimpleITK as sitk
 import sys
+import pandas as pd
+import numpy as np
 
 import torch
-import torch.nn.functional as F
-
-
+from torch.utils.data import Dataset
+import torch.io as tio
+import random
 
 
 
 
 #TODO: Define Datahandler for MetaIO-format, using simpleITK
-class DatasetHandler(torch.utils.data.Dataset):
+class DatasetHandler(Dataset):
 
     """
 
     """
-    def __init__(self):
-        raise NotImplemented
+    def __init__(self, root, data_file, patients=None, mode):
+        self.root = root
+        self.mode = mode
+        assert os.path.isfile(data_file), 'Please provide a valid data file. \n (not valid {})'.format(data_file)
+        self.data_file = data_file
 
-    def __getitem__(self, item):
-        raise NotImplemented
+        self.filenames = None
+        self.labelnames = None
+        self.patients = patients
+
+
+    def __getitem__(self, index):
+        patient_id = self.patients[index]
+        fnames = self.filenames[index]
+        lnames = self.labelnames[index]
+        return patient_id, fnames, lnames
 
     def __len__(self):
-        raise NotImplemented
+        return len(self.filenames)
