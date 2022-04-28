@@ -1,6 +1,8 @@
 
 # paths to configs
-CONFIG_DIR = '/home/moritz/Thesis/ImageRegistration/src/configs'
+BASE_DIR = '/home/moritz/Thesis/ImageRegistration/'
+DATA_DIR = BASE_DIR + 'data/'
+CONFIG_DIR = BASE_DIR + 'src/configs'
 CONFIG_BASEMODEL = CONFIG_DIR + 'base_model.json'
 
 

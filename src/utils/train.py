@@ -5,7 +5,9 @@
 import wandb
 wandb.init(project="registration", entity="mo12896")
 
-import src.systemsetup as setup
+import sys
+sys.path.append('../')
+import systemsetup as setup
 from utils.params import Params
 
 
