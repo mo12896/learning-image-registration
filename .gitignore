@@ -4,6 +4,7 @@
 .idea/
 src/data/__pycache__/Empire10.cpython-36.pyc
 src/data/__pycache__/dataset.cpython-36.pyc
+.ipynb_checkpoints/
 
 
 # Byte-compiled / optimized / DLL files

@@ -22,10 +22,11 @@ class DatasetHandler(Dataset):
     Base class for all datasets. It implements a map-style dataset, see
     https://pytorch.org/docs/stable/data.html.
     """
-    def __init__(self, ids: list, image_mode: str):
+    def __init__(self, ids: list, root: str, transform=None):
         """Constructor of DatasetHandler"""
         self.list_ids = ids
-        self.image_mode = image_mode
+        self.image_root = root
+        self.transform = transform
 
     def __len__(self):
         """Return total number of samples"""
@@ -49,11 +50,16 @@ class DatasetHandler(Dataset):
 
         for mode in modes:
             image = id + mode + '.nii'
-            image_path = INPUT_DIR + self.image_mode + image
+            image_path = INPUT_DIR + self.image_root + image
             img = sitk.ReadImage(image_path, sitk.sitkInt16)
             t_image = torch.Tensor(sitk.GetArrayFromImage(img))
             images.append(t_image)
-        return images[0], images[1], id
+        sample = [images[0], images[1], id]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
 
 
 

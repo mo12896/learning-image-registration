@@ -1,18 +1,21 @@
 import os
 import logging
-import json
+import yaml
 
 import torch
 from torch.utils.data import DataLoader
 import torch.optim
 
+import torchvision
+import torchvision.transforms as transforms
+
+from sklearn.model_selection import train_test_split
+
 import sys
 sys.path.append('../')
 import systemsetup as setup
-from utils.params import Params
+from data.dataset import DatasetHandler
 from utils.evaluate import Evaluator
-
-params = Params(setup.CONFIG_BASEMODEL)
 
 
 class Solver():
@@ -30,7 +33,7 @@ class Solver():
 	          early_stop: bool,
 	          eval_freq: int,
 	          start_epoch: int,
-	          save_models:):
+	          save_models: bool):
 
 		model.to(self.device)
 
@@ -93,3 +96,24 @@ class Solver():
 
 	def compute_loss(self, model, data, iteration):
 
+
+def training_routine(hyps: dict, log_level: str, experiment_name):
+	raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
+	out_data = setup.INTERIM_DATA_DIR + 'EMPIRE10/scans/'
+	ids = list(set([x.split('_')[0]
+	                     for x in os.listdir(raw_data)]))
+	partition = {}
+	partition['train'], partition['validation'] = train_test_split(
+		ids, test_size=0.33, random_state=42)
+
+	#TODO: Create feasible transforms
+	transform = transforms.Compose()
+
+	# Generator
+	training_set = DatasetHandler(partition['train'], root=out_data, transform=transform)
+
+	#TODO: implement!
+	model = ModelHandler()
+	evaluator = Evaluator()
+	solver = Solver()
+	solver.train()

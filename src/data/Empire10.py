@@ -125,19 +125,18 @@ def convert_raw_to_img(raw_folder, img_folder, pixel_type, image_format, verbose
             big_endian = False
             sitk_pixel_type = pixel_type
             binary_file_name = input_dir + image + '.raw'
-            print(type(meta_image))
             image_size = meta_image.GetSize()
             image_spacing = meta_image.GetSpacing()
             image_origin = meta_image.GetOrigin()
 
             img = read_raw(binary_file_name, image_size, sitk_pixel_type, image_spacing=image_spacing,
                            image_origin=image_origin, big_endian=big_endian)
-            nda = sitk.GetArrayFromImage(img)
 
             # Safe Image in new format
             file_out = output_dir + image + image_format
             if not os.path.isfile(file_out):
                 if image_format == '.jpg':
+                    nda = sitk.GetArrayFromImage(img)
                     sitk.WriteImage(nda[0, :], file_out)
                 else:
                     sitk.WriteImage(img, file_out)
