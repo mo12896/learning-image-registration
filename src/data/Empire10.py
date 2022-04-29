@@ -1,6 +1,7 @@
 """Script to load raw EMPIRE10 data into .nii image format"""
 
 import os
+import argparse
 
 import SimpleITK as sitk
 import tempfile
@@ -10,12 +11,17 @@ sys.path.append('../')
 import systemsetup as setup
 
 
+image_types = ['BMPImageIO', 'BioRadImageIO', 'Bruker2dseqImageIO', 'GDCMImageIO',
+               'GE4ImageIO', 'GE5ImageIO', 'GiplImageIO', 'HDF5ImageIO', 'JPEGImageIO',
+               'LSMImageIO', 'MINCImageIO', 'MRCImageIO', 'MetaImageIO', 'NiftiImageIO',
+               'NrrdImageIO', 'PNGImageIO', 'StimulateImageIO', 'TIFFImageIO', 'VTKImageIO']
+
 
 def read_image(image_path, image_type, verbose=False):
+    if image_type not in image_types:
+        raise AttributeError("Image type must be a string and supported by the SimpleITK API!")
     if '.' not in image_path:
         raise IOError("Image path must contain a valid image format! See docs.")
-    if not isinstance(image_type, str):
-        raise TypeError("Image type must be of string!")
     file_reader = sitk.ImageFileReader()
     file_reader.SetImageIO(image_type)
     file_reader.SetFileName(image_path)
@@ -98,38 +104,38 @@ def read_raw(binary_file_name, image_size, sitk_pixel_type, image_spacing=None,
 
 
 def convert_raw_to_img(raw_folder, img_folder, pixel_type, image_format, verbose=False):
-    OUTPUT_DIR = setup.DATA_DIR + img_folder
-    if not os.path.isdir(OUTPUT_DIR):
-        os.mkdir(OUTPUT_DIR)
-        print(f"Created directory: {OUTPUT_DIR}")
+    output_dir = setup.DATA_DIR + img_folder
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+        print(f"Created directory: {output_dir}")
 
-    INPUT_DIR = setup.DATA_DIR + raw_folder
-    ids = list(set([x.split('_')[0] for x in os.listdir(INPUT_DIR)]))
+    input_dir = setup.DATA_DIR + raw_folder
+    ids = list(set([x.split('_')[0] for x in os.listdir(input_dir)]))
     modes = ['_Fixed', '_Moving']
 
     for id in ids:
         for mode in modes:
             # Read Meta data
             image = id + mode
-            IMAGE_TYPE = 'MetaImageIO'
-            raw_image = INPUT_DIR + image + '.mhd'
-            meta_image = read_image(raw_image, IMAGE_TYPE, verbose=verbose)
+            image_type = 'MetaImageIO'
+            raw_image = input_dir + image + '.mhd'
+            meta_image = read_image(raw_image, image_type, verbose=verbose)
 
             # Read Image
-            BIG_ENDIAN = False
+            big_endian = False
             sitk_pixel_type = pixel_type
-            binary_file_name = INPUT_DIR + image + '.raw'
+            binary_file_name = input_dir + image + '.raw'
             print(type(meta_image))
             image_size = meta_image.GetSize()
             image_spacing = meta_image.GetSpacing()
             image_origin = meta_image.GetOrigin()
 
             img = read_raw(binary_file_name, image_size, sitk_pixel_type, image_spacing=image_spacing,
-                           image_origin=image_origin, big_endian=BIG_ENDIAN)
+                           image_origin=image_origin, big_endian=big_endian)
             nda = sitk.GetArrayFromImage(img)
 
             # Safe Image in new format
-            file_out = OUTPUT_DIR + image + image_format
+            file_out = output_dir + image + image_format
             if not os.path.isfile(file_out):
                 if image_format == '.jpg':
                     sitk.WriteImage(nda[0, :], file_out)
@@ -138,8 +144,14 @@ def convert_raw_to_img(raw_folder, img_folder, pixel_type, image_format, verbose
 
 
 if __name__ == "__main__":
-    cases = [True, True]
-    if cases[0]:
+    parser = argparse.ArgumentParser(description='Load EMPIRE10 data into .nii image format" ')
+    parser.add_argument('--scans', dest='convert_scans', type=bool, default=False,
+                        help='Load the scan images.')
+    parser.add_argument('--masks', dest='convert_masks', type=bool, default=False,
+                        help='Load the mask images.')
+    args = parser.parse_args()
+
+    if args.convert_scans:
         scans_raw_folder = 'raw/EMPIRE10/scans/'
         scans_img_folder = 'interim/EMPIRE10/scans/'
         scans_pixel_type = sitk.sitkInt16
@@ -148,7 +160,7 @@ if __name__ == "__main__":
         convert_raw_to_img(scans_raw_folder, scans_img_folder, scans_pixel_type,
                            scans_image_format, verbose=False)
 
-    if cases[1]:
+    if args.convert_masks:
         masks_raw_folder = 'raw/EMPIRE10/masks/'
         masks_img_folder = 'interim/EMPIRE10/masks/'
         masks_pixel_type = sitk.sitkUInt8

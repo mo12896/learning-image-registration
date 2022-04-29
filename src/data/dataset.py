@@ -1,5 +1,7 @@
 """DatasetHandler for lung CTs"""
 import os
+import sys
+sys.path.append('../')
 
 import SimpleITK as sitk
 import pandas as pd
@@ -9,11 +11,9 @@ import torch
 from torch.utils.data import Dataset
 import random
 
-import sys
-sys.path.append('../')
+
 import systemsetup as setup
-
-
+#TODO: could become a problem!?
 
 
 #TODO: Abstract into baseclass and METAIO class
@@ -54,6 +54,8 @@ class DatasetHandler(Dataset):
             t_image = torch.Tensor(sitk.GetArrayFromImage(img))
             images.append(t_image)
         return images[0], images[1], id
+
+
 
 
 
