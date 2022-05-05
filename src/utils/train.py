@@ -1,5 +1,6 @@
 import os
 import logging
+from tqdm import tqdm
 import yaml
 
 import torch
@@ -16,14 +17,17 @@ sys.path.append('../')
 import systemsetup as setup
 from data.dataset import DatasetHandler
 from utils.evaluate import Evaluator
+from utils.logging import *
 
 
 class Solver():
-	def __init__(self, optimizer_class, optim_params, evaluator, loss_fn, device):
+	def __init__(self, optimizer_class, optim_params, evaluator, criterion, device):
 		self.optim_class = optimizer_class
 		self.optim_params = optim_params
 		self.optim = None  # defined for each training separately
 		self.evaluator = evaluator
+		self.criterion = criterion
+		self.device = device
 
 	def train(self,
 	          model: torch.nn.Module,
@@ -43,7 +47,7 @@ class Solver():
 		training_loader = DataLoader(training_set, batch_size=batch_size,
 		                                shuffle=True, pin_memory=True)
 
-		for epoch in range(n_epochs):
+		for epoch in tqdm(range(n_epochs)):
 			print(f"EPOCH {epoch+1}: ")
 
 			model.train(True)
@@ -65,7 +69,7 @@ class Solver():
 			if early_stop:
 				raise NotImplementedError
 
-		# Save final model
+		# Save final model (use wandb.save() in .onnx format)
 		if save_models:
 			raise NotImplementedError
 
@@ -76,9 +80,10 @@ class Solver():
 
 		for i, data in enumerate(training_loader):
 			fixed, moving, _ = data
+			fixed, moving = fixed.to(self.device), moving.to(self.device)
 			self.optim.zero_grad()
 			outputs = model(fixed, moving)
-			loss = loss_fn(fixed, moving, outputs)
+			loss = self.criterion(fixed, moving, outputs)
 			loss.backward()
 			optimizer.step()
 
@@ -86,6 +91,7 @@ class Solver():
 			running_loss += loss.item()
 			if i % 1000 == 999:
 				final_loss = running_loss / 1000
+				log_train_losses(final_loss, epoch_index)
 				print(f"The final loss of epoch {epoch_index} is: {final_loss}")
 				running_loss = 0.
 
@@ -97,7 +103,7 @@ class Solver():
 	def compute_loss(self, model, data, iteration):
 
 
-def training_routine(hyps: dict, log_level: str, experiment_name):
+def training_pipeline(hyps: dict, log_level: str, exp_name):
 	raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
 	out_data = setup.INTERIM_DATA_DIR + 'EMPIRE10/scans/'
 	ids = list(set([x.split('_')[0]
@@ -112,8 +118,13 @@ def training_routine(hyps: dict, log_level: str, experiment_name):
 	# Generator
 	training_set = DatasetHandler(partition['train'], root=out_data, transform=transform)
 
+	init_logger(name, log_level, log_dir, mode)
+
+
 	#TODO: implement!
 	model = ModelHandler()
 	evaluator = Evaluator()
 	solver = Solver()
-	solver.train()
+	solver.train(model, evaluator)
+
+	finish_wandb_logger()
