@@ -23,7 +23,7 @@ class Create2D(object):
         self.axis = axis
 
     def __call__(self, sample):
-        fixed, moving = sample[0], sample[1]
+        fixed, moving, _ = sample
         if self.axis == 'z':
             return [fixed[100,:,:], moving[100,:,:], sample[2]]
         elif self.axis == 'y':

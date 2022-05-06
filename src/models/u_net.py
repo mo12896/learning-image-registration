@@ -13,17 +13,19 @@ class ConvBlock(nn.Module):
         super().__init__()
         self.conv0 = nn.Conv2D(in_channels, out_channels, kernel_size=3)
         self.conv1 = nn.Conv2D(out_channels, out_channels, kernel_size=3)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU()
+        self.bn0 = nn.BatchNorm2d(out_channels)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu0 = nn.ReLU()
+        self.relu1 = nn.ReLU()
 
     def forward(self, inputs):
         x = self.conv0(inputs)
-        x = self.bn(x)
-        x = self.relu(x)
+        x = self.relu0(x)
+        x = self.bn0(x)
 
         x = self.conv1(x)
-        x = self.bn(x)
-        x = self.relu(x)
+        x = self.relu1(x)
+        x = self.bn1(x)
         return x
 
 class EncoderBlock(nn.Module):
@@ -36,9 +38,9 @@ class EncoderBlock(nn.Module):
         self.pool = nn.MaxPool2d(2, stride=2)
 
         def forward(self, inputs):
-            x = self.conv(inputs)
-            p = self.pool(x)
-            return x, p
+            before_pooling = self.conv(inputs)
+            p = self.pool(before_pooling)
+            return before_pooling, p
 
 
 class DecoderBlock(nn.Module):
@@ -48,21 +50,23 @@ class DecoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2)
+        self.relu = nn.ReLU()
         self.bn = nn.BatchNorm2d(out_channels)
         self.conv = ConvBlock(out_channels*2, out_channels)
 
     def forward(self, inputs, skip):
         x = self.up(inputs)
-        x = torch.cat([x, skip], axis=1)
+        x = self.relu(x)
         x = self.bn(x)
+        x = torch.cat((x, skip), axis=1)
         x = self.conv(x)
         return x
 
 
 class UNetEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels):
         super().__init__()
-        self.conv1 = EncoderBlock(3, 64)
+        self.conv1 = EncoderBlock(self.in_channels, 64)
         self.conv2 = EncoderBlock(64, 128)
         self.conv3 = EncoderBlock(128, 256)
         self.conv4 = EncoderBlock(256, 512)
@@ -79,8 +83,9 @@ class UNetDecoder(nn.Module):
     """
 
     """
-    def __init__(self):
+    def __init__(self, classes):
         super().__init__()
+
         self.up1 = DecoderBlock(1024, 512)
         self.up2 = DecoderBlock(512, 256)
         self.up3 = DecoderBlock(256, 128)
@@ -99,12 +104,15 @@ class UNet(nn.Module):
     """
 
     """
-    def __init__(self):
+    def __init__(self, in_channels, classes):
         super().__init__()
-        self.encoder = UNetEncoder()
+        self.in_channels = in_channels
+        self.classes = classes
+
+        self.encoder = UNetEncoder(in_channels)
         self.bn = ConvBlock(512, 1024)
         self.decoder = UNetDecoder()
-        self.outputs = nn.Conv2d(64, 1, kernel_size=1)
+        self.outputs = nn.Conv2d(64, classes, kernel_size=1)
 
     def forward(self, inputs):
         encoder_out, encodings = self.encoder(inputs)

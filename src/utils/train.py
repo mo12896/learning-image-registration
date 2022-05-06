@@ -5,7 +5,7 @@ import yaml
 
 import torch
 from torch.utils.data import DataLoader
-import torch.optim
+import torch.optim as optim
 
 import torchvision
 import torchvision.transforms as transforms
@@ -17,14 +17,16 @@ sys.path.append('../')
 import systemsetup as setup
 from data.dataset import DatasetHandler
 from utils.evaluate import Evaluator
+from utils.modes import ExeModes
+from features.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
+from models.model_loader import ModelLoader
+from models.unet import UNet
 from utils.logging import *
 
 
 class Solver():
-	def __init__(self, optimizer_class, optim_params, evaluator, criterion, device):
-		self.optim_class = optimizer_class
-		self.optim_params = optim_params
-		self.optim = None  # defined for each training separately
+	def __init__(self, optimizer, evaluator, criterion, device):
+		self.optimizer = optimizer
 		self.evaluator = evaluator
 		self.criterion = criterion
 		self.device = device
@@ -34,15 +36,15 @@ class Solver():
 	          training_set: torch.utils.data.Dataset,
 	          n_epochs: int,
 	          batch_size: int,
-	          early_stop: bool,
+	          early_stop: False,
 	          eval_freq: int,
 	          start_epoch: int,
-	          save_models: bool):
+	          save_models: False):
 
 		model.to(self.device)
 
 		#Optimizer and lr scheduling
-		self.optim.zero_grad()
+		self.optimizer.zero_grad()
 
 		training_loader = DataLoader(training_set, batch_size=batch_size,
 		                                shuffle=True, pin_memory=True)
@@ -81,11 +83,11 @@ class Solver():
 		for i, data in enumerate(training_loader):
 			fixed, moving, _ = data
 			fixed, moving = fixed.to(self.device), moving.to(self.device)
-			self.optim.zero_grad()
+			self.optimizer.zero_grad()
 			outputs = model(fixed, moving)
 			loss = self.criterion(fixed, moving, outputs)
 			loss.backward()
-			optimizer.step()
+			self.optimizer.step()
 
 			# log average loss
 			running_loss += loss.item()
@@ -103,28 +105,52 @@ class Solver():
 	def compute_loss(self, model, data, iteration):
 
 
-def training_pipeline(hyps: dict, log_level: str, exp_name):
+def training_pipeline(hyper: dict, log_level: str, exp_name: str):
+	train_setup = {k.lowercase: v for k, v in hyper['SETUP']}
+	hypers = {k.lowercase: v for k, v in hyper['HYPERPARAMETERS']}
+
 	raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
-	out_data = setup.INTERIM_DATA_DIR + 'EMPIRE10/scans/'
+	dataset = train_setup['dataset']
+	task = train_setup['seg']
 	ids = list(set([x.split('_')[0]
 	                     for x in os.listdir(raw_data)]))
 	partition = {}
 	partition['train'], partition['validation'] = train_test_split(
 		ids, test_size=0.33, random_state=42)
 
-	#TODO: Create feasible transforms
-	transform = transforms.Compose()
+	shape = (97, 97)
+	transform = transforms.Compose([
+		# Data Preprocessing
+		Create2D('y'),
+		AddChannel(axs=0),
+		Rescale(shape)
+	])
 
-	# Generator
-	training_set = DatasetHandler(partition['train'], root=out_data, transform=transform)
+	init_logger(ExeModes.TRAIN.name, log_level, setup.LOG_DIR, mode=ExeModes.TRAIN)
+	trainLogger = logging.getLogger(ExeModes.TRAIN.name)
+	trainLogger.info("Start training '%s'...")
 
-	init_logger(name, log_level, log_dir, mode)
+	# Data Generator
+	training_set = DatasetHandler(partition['train'], dataset=dataset,
+	                              task=task,transform=transform)
+	validation_set = DatasetHandler(partition['validation'], dataset=dataset,
+								  task=task, transform=transform)
 
-
+	# Training
 	#TODO: implement!
-	model = ModelHandler()
-	evaluator = Evaluator()
-	solver = Solver()
-	solver.train(model, evaluator)
+	model = UNet()
+	trainLogger.info("%d parameters in the model.", model.count_parameters())
+
+	optimizer = optim.Adam(model.parameters(), lr=hypers['learning_rate'])
+	evaluator = Evaluator(validation_set=validation_set,
+						  eval_metrics=eval_metrics)
+	solver = Solver(optimizer=optimizer, evaluator=evaluator, criterion=criterion,
+	                device=train_setup['device'])
+	solver.train(model=model,
+				 training_set=training_set,
+				 n_epochs=hypers['epochs'],
+				 batch_size=hypers['batch_size'],
+				 eval_freq=hypers['eval_every'],
+				 start_epoch=hypers['start_epoch'])
 
 	finish_wandb_logger()
