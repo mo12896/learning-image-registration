@@ -138,7 +138,6 @@ def training_pipeline(hyper: dict, log_level: str, exp_name: str):
     # TODO: implement!
     model = UNet()
     train_logger.info("%d parameters in the model.", model.count_parameters())
-    print("hi")
 
     optimizer = optim.Adam(model.parameters(), lr=hyper['learning_rate'])
     evaluator = Evaluator(validation_set=validation_set,
