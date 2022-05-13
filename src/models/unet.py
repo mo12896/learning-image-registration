@@ -1,4 +1,3 @@
-
 from torch import nn
 import torch
 
@@ -50,7 +49,8 @@ def get_conv_layer(in_channels: int,
                    padding: int = 1,
                    bias: bool = True,
                    dim: int = 2):
-    return conv_layer(dim)(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
+    return conv_layer(dim)(in_channels, out_channels, kernel_size=kernel_size, stride=stride,
+                           padding=padding,
                            bias=bias)
 
 
@@ -69,7 +69,8 @@ def get_up_layer(in_channels: int,
                  up_mode: str = 'transposed',
                  ):
     if up_mode == 'transposed':
-        return conv_transpose_layer(dim)(in_channels, out_channels, kernel_size=kernel_size, stride=stride)
+        return conv_transpose_layer(dim)(in_channels, out_channels, kernel_size=kernel_size,
+                                         stride=stride)
     else:
         return nn.Upsample(scale_factor=2.0, mode=up_mode)
 
@@ -154,9 +155,11 @@ class DownBlock(nn.Module):
         self.activation = activation
 
         # conv layers
-        self.conv1 = get_conv_layer(self.in_channels, self.out_channels, kernel_size=3, stride=1, padding=self.padding,
+        self.conv1 = get_conv_layer(self.in_channels, self.out_channels, kernel_size=3, stride=1,
+                                    padding=self.padding,
                                     bias=True, dim=self.dim)
-        self.conv2 = get_conv_layer(self.out_channels, self.out_channels, kernel_size=3, stride=1, padding=self.padding,
+        self.conv2 = get_conv_layer(self.out_channels, self.out_channels, kernel_size=3, stride=1,
+                                    padding=self.padding,
                                     bias=True, dim=self.dim)
 
         # pooling layer
@@ -169,9 +172,11 @@ class DownBlock(nn.Module):
 
         # normalization layers
         if self.normalization:
-            self.norm1 = get_normalization(normalization=self.normalization, num_channels=self.out_channels,
+            self.norm1 = get_normalization(normalization=self.normalization,
+                                           num_channels=self.out_channels,
                                            dim=self.dim)
-            self.norm2 = get_normalization(normalization=self.normalization, num_channels=self.out_channels,
+            self.norm2 = get_normalization(normalization=self.normalization,
+                                           num_channels=self.out_channels,
                                            dim=self.dim)
 
     def forward(self, x):
@@ -220,16 +225,20 @@ class UpBlock(nn.Module):
         self.up_mode = up_mode
 
         # upconvolution/upsample layer
-        self.up = get_up_layer(self.in_channels, self.out_channels, kernel_size=2, stride=2, dim=self.dim,
+        self.up = get_up_layer(self.in_channels, self.out_channels, kernel_size=2, stride=2,
+                               dim=self.dim,
                                up_mode=self.up_mode)
 
         # conv layers
-        self.conv0 = get_conv_layer(self.in_channels, self.out_channels, kernel_size=1, stride=1, padding=0,
+        self.conv0 = get_conv_layer(self.in_channels, self.out_channels, kernel_size=1, stride=1,
+                                    padding=0,
                                     bias=True, dim=self.dim)
-        self.conv1 = get_conv_layer(2 * self.out_channels, self.out_channels, kernel_size=3, stride=1,
+        self.conv1 = get_conv_layer(2 * self.out_channels, self.out_channels, kernel_size=3,
+                                    stride=1,
                                     padding=self.padding,
                                     bias=True, dim=self.dim)
-        self.conv2 = get_conv_layer(self.out_channels, self.out_channels, kernel_size=3, stride=1, padding=self.padding,
+        self.conv2 = get_conv_layer(self.out_channels, self.out_channels, kernel_size=3, stride=1,
+                                    padding=self.padding,
                                     bias=True, dim=self.dim)
 
         # activation layers
@@ -239,11 +248,14 @@ class UpBlock(nn.Module):
 
         # normalization layers
         if self.normalization:
-            self.norm0 = get_normalization(normalization=self.normalization, num_channels=self.out_channels,
+            self.norm0 = get_normalization(normalization=self.normalization,
+                                           num_channels=self.out_channels,
                                            dim=self.dim)
-            self.norm1 = get_normalization(normalization=self.normalization, num_channels=self.out_channels,
+            self.norm1 = get_normalization(normalization=self.normalization,
+                                           num_channels=self.out_channels,
                                            dim=self.dim)
-            self.norm2 = get_normalization(normalization=self.normalization, num_channels=self.out_channels,
+            self.norm2 = get_normalization(normalization=self.normalization,
+                                           num_channels=self.out_channels,
                                            dim=self.dim)
 
         # concatenate layer
@@ -280,7 +292,7 @@ class UpBlock(nn.Module):
 class UNet(nn.Module):
     def __init__(self,
                  in_channels: int = 1,
-                 out_channels: int = 2,
+                 out_channels: int = 1,
                  n_blocks: int = 4,
                  start_filters: int = 32,
                  activation: str = 'relu',
@@ -336,7 +348,8 @@ class UNet(nn.Module):
             self.up_blocks.append(up_block)
 
         # final convolution
-        self.conv_final = get_conv_layer(num_filters_out, self.out_channels, kernel_size=1, stride=1, padding=0,
+        self.conv_final = get_conv_layer(num_filters_out, self.out_channels, kernel_size=1,
+                                         stride=1, padding=0,
                                          bias=True, dim=self.dim)
 
         # add the list of modules to current module
@@ -384,6 +397,7 @@ class UNet(nn.Module):
         return x
 
     def __repr__(self):
-        attributes = {attr_key: self.__dict__[attr_key] for attr_key in self.__dict__.keys() if '_' not in attr_key[0] and 'training' not in attr_key}
+        attributes = {attr_key: self.__dict__[attr_key] for attr_key in self.__dict__.keys() if
+                      '_' not in attr_key[0] and 'training' not in attr_key}
         d = {self.__class__.__name__: attributes}
         return f'{d}'

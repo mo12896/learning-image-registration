@@ -1,10 +1,14 @@
+# only specififc folders
 /data/
 /models/
 /reports/
 .idea/
 src/data/__pycache__/Empire10.cpython-36.pyc
 src/data/__pycache__/dataset.cpython-36.pyc
+# general folders
 .ipynb_checkpoints/
+wandb/
+__pycache__/
 
 
 # Byte-compiled / optimized / DLL files
