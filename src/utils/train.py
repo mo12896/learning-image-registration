@@ -87,7 +87,7 @@ class Solver():
     def _train_one_epoch(self, epoch_index, training_loader):
         self.model.train()
         running_loss = 0.
-        final_loss = 0.
+        final_loss = {}
         # batch_iter = tqdm(enumerate(training_loader), 'Training',
         #                  total=len(training_loader), leave=False)
         batch_iter = enumerate(training_loader)
@@ -104,8 +104,8 @@ class Solver():
             # batch_iter.set_description(f'Training: (loss {loss.item():.4f})')
 
             if i + 1 == len(training_loader):
-                final_loss = running_loss / len(training_loader)
-                # log_train_losses(final_loss, epoch_index)
+                final_loss['total_loss'] = running_loss / len(training_loader)
+                log_train_losses(final_loss, epoch_index)
                 print(f"The final loss of epoch {epoch_index} is: {final_loss}")
                 running_loss = 0.
 
@@ -154,12 +154,12 @@ def training_pipeline(hyper: dict, log_level: str, exp_name: str):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=hyper['learning_rate'])
     eval_metric = DiceLoss()
+    # criterion = torch.nn.CrossEntropyLoss()
     evaluator = Evaluator(validation_set=validation_set,
                           eval_metric=eval_metric,
                           device=device,
                           batch_size=hyper['batch_size'])
 
-    criterion = torch.nn.CrossEntropyLoss()
     solver = Solver(model=model,
                     device=device,
                     optimizer=optimizer,

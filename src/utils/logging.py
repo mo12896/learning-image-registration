@@ -61,14 +61,12 @@ def init_logger(logger_name: str, log_dir: str, log_level: str, mode: ExeModes):
         init_wandb_logger()
 
 
-def log_train_losses(losses, iteration):
-    losses = {k: v.detach() for k, v in losses}
+def log_train_losses(loss, iteration):
     train_logger = logging.getLogger()
-    for k, v in losses.items():
-        train_logger.info()
+    train_logger.info(loss)
 
     if use_wandb:
-        wandb.log(losses, step=iteration)
+        wandb.log(loss, step=iteration)
 
 # def log_model_tensorboard(avg_loss, avg_vloss):
 # 	writer = SummaryWriter(setup.BASE_DIR + 'logs/tensorboard')

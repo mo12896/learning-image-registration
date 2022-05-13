@@ -351,6 +351,7 @@ class UNet(nn.Module):
         self.conv_final = get_conv_layer(num_filters_out, self.out_channels, kernel_size=1,
                                          stride=1, padding=0,
                                          bias=True, dim=self.dim)
+        self.sigi = nn.Sigmoid()
 
         # add the list of modules to current module
         self.down_blocks = nn.ModuleList(self.down_blocks)
@@ -393,6 +394,7 @@ class UNet(nn.Module):
             x = module(before_pool, x)
 
         x = self.conv_final(x)
+        x = self.sigi(x)
 
         return x
 
