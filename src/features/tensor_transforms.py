@@ -1,7 +1,8 @@
-"""Transforms for 3D Biomedical Tensor Images"""
+"""Transforms for 3D Biomedical Images"""
 
 from torchvision.transforms.transforms import Resize, ToPILImage, ToTensor, Normalize
 import torch.nn.functional as F
+
 
 class Compose(object):
     def __init__(self, transforms):
@@ -25,13 +26,14 @@ class Create2D(object):
     def __call__(self, sample):
         fixed, moving, _ = sample
         if self.axis == 'z':
-            return [fixed[100,:,:], moving[100,:,:], sample[2]]
+            return [fixed[100, :, :], moving[100, :, :], sample[2]]
         elif self.axis == 'y':
-            return [fixed[:,100,:], moving[:,100,:], sample[2]]
+            return [fixed[:, 100, :], moving[:, 100, :], sample[2]]
         elif self.axis == 'x':
-            return [fixed[:,:,100], moving[:,:,100], sample[2]]
+            return [fixed[:, :, 100], moving[:, :, 100], sample[2]]
         else:
-            raise AttributeError(f"Axis {self.axis} does not exist. Please choose from either x, y or z!")
+            raise AttributeError(
+                f"Axis {self.axis} does not exist. Please choose from either x, y or z!")
 
 
 class AddChannel(object):
@@ -56,8 +58,8 @@ class AddChannel(object):
         -------
         outputs: Tensors
         """
-        if not isinstance(self.axs, (tuple,list)):
-            axs = [self.axs]*len(sample)
+        if not isinstance(self.axs, (tuple, list)):
+            axs = [self.axs] * len(sample)
         else:
             axs = self.axs
         fix = sample[0].unsqueeze(0)
@@ -89,7 +91,7 @@ class Rescale(object):
         new_h, new_w = int(new_h), int(new_w)
 
         transform = Resize((new_h, new_w))
-        #TODO: due to python version!?
+        # TODO: due to python version!?
         pil = ToPILImage()
         ten = ToTensor()
 
@@ -110,6 +112,6 @@ class NormalizeSample(object):
         mov = F.normalize(moving, dim=self.dim)
         return [fix, mov, sample[2]]
 
+
 class Standardize(object):
     pass
-
