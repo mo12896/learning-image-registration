@@ -61,7 +61,7 @@ def init_logger(logger_name: str, log_dir: str, log_level: str, mode: ExeModes):
         init_wandb_logger()
 
 
-def log_train_losses(loss, iteration):
+def log_losses(loss, iteration):
     train_logger = logging.getLogger()
     train_logger.info(loss)
 

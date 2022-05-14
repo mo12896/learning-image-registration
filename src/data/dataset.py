@@ -34,7 +34,7 @@ class SegmentationDataset(Dataset):
 
         # data caching, preprocessing and multiprocessing
         if self.use_cache:
-            print("Cache and preprocess the data in a multiprocessing context...")
+            print("Cache and preprocess data in a multiprocessing context...")
             from multiprocessing import Pool
             from itertools import repeat
 

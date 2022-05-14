@@ -66,14 +66,19 @@ class Solver():
         progressbar = trange(self.epochs, desc='Progress')
         for epoch in progressbar:
             print(f"EPOCH {epoch + 1}: ")
+            losses = {}
 
             """ Training Block """
-            avg_loss = self._train_one_epoch(epoch, self.training_loader)
+            avg_loss = self._train_one_epoch(epoch)
+            losses['TrainingLoss'] = avg_loss
 
             """ Validation Block """
             if (epoch % self.eval_freq or
                     epoch == self.epochs):
-                val_results = self.evaluator.validate(self.model)
+                val_results = self.evaluator.validate(self.model, epoch)
+                losses['ValidationLoss'] = val_results
+
+            log_losses(losses, epoch)
 
             # Save intermediate model after each epoch
             if self.save_models:
@@ -87,20 +92,12 @@ class Solver():
         if self.save_models:
             raise NotImplementedError
 
-    def _train_one_epoch(self, epoch_index, training_loader):
+    def _train_one_epoch(self, epoch_index):
         self.model.train()
         running_loss = 0.
         final_loss = {}
 
-        if self.notebook:
-            from tqdm.notebook import tqdm, trange
-        else:
-            from tqdm import tqdm, trange
-
-        # batch_iter = tqdm(enumerate(training_loader), 'Training',
-        #                  total=len(training_loader), leave=False)
-        batch_iter = enumerate(training_loader)
-
+        batch_iter = enumerate(self.training_loader)
         for i, (x, y, _) in batch_iter:
             image, label = (x.to(self.device), y.to(self.device))
             self.optimizer.zero_grad()
@@ -110,15 +107,10 @@ class Solver():
             loss.backward()
             self.optimizer.step()
 
-            # batch_iter.set_description(f'Training: (loss {loss.item():.4f})')
-
-            if i + 1 == len(training_loader):
-                final_loss['total_loss'] = running_loss / len(training_loader)
-                log_train_losses(final_loss, epoch_index)
-                print(f"The final loss of epoch {epoch_index} is: {final_loss}")
+            if i + 1 == len(self.training_loader):
+                final_loss = running_loss / len(self.training_loader)
+                print(f"\nThe final loss of epoch {epoch_index} is: {final_loss}")
                 running_loss = 0.
-
-        # batch_iter.close()
 
         return final_loss
 
@@ -131,10 +123,9 @@ def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str
 
     raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
     dataset = train_setup['dataset']
-    task = train_setup['task']
     ids = list(set([x.split('_')[0] for x in os.listdir(raw_data)]))
-    random_seed = 42
-    test_size = 0.33
+    random_seed = train_setup['random_seed']
+    test_size = train_setup['split']
 
     """Initalize Logger """
     init_logger(ExeModes.TRAIN.name, log_level, setup.LOG_DIR, mode=ExeModes.TRAIN)

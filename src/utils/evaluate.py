@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 
+from utils.logging import *
+
 
 class Evaluator():
     def __init__(self, validation_loader, eval_metric, device, notebook):
@@ -9,7 +11,7 @@ class Evaluator():
         self.device = device
         self.notebook = notebook
 
-    def validate(self, model):
+    def validate(self, model, epoch_index):
         model.eval()
         running_loss = 0.
         final_loss = 0.
@@ -33,7 +35,7 @@ class Evaluator():
 
                 if i + 1 == len(self.validation_loader):
                     final_loss = running_loss / len(self.validation_loader)
-                    print(f"The validation loss is: {final_loss}")
+                    print(f"\nThe final loss of epoch {epoch_index} is: {final_loss}")
                     running_loss = 0.
 
         batch_iter.close()
