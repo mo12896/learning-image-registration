@@ -15,7 +15,6 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 with open(configs, 'r') as stream:
     try:
         hyper = yaml.safe_load(stream)
-        print(hyper)
     except yaml.YAMLError as exc:
         print(exc)
 
@@ -40,7 +39,7 @@ def main(hyper):
     # Run
     pipeline = mode_handler[mode]
     pipeline(hyper, exp_name=hyper['META']['EXPERIMENT_NAME'],
-             log_level=hyper['SETUP']['LOGLEVEL'])
+             log_level=hyper['SETUP']['LOGLEVEL'], notebook=False)
 
 
 if __name__ == '__main__':

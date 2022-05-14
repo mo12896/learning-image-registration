@@ -1,6 +1,5 @@
 import os
 import logging
-from tqdm import tqdm
 import yaml
 
 import torch
@@ -16,7 +15,7 @@ import sys
 
 sys.path.append('../')
 import systemsetup as setup
-from data.dataset import DatasetHandler
+from data.dataset import SegmentationDataset, RegistrationDataset
 from utils.evaluate import Evaluator
 from utils.modes import ExeModes
 from features.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
@@ -33,10 +32,10 @@ class Solver():
                  optimizer: torch.optim.Optimizer,
                  evaluator: Evaluator,
                  criterion: torch.nn.Module,
-                 training_set: torch.utils.data.Dataset,
+                 training_loader: torch.utils.data.DataLoader,
                  epochs: int,
-                 batch_size: int,
                  eval_freq: int,
+                 notebook: bool,
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  early_stop: bool = False,
                  save_models: bool = False):
@@ -46,10 +45,10 @@ class Solver():
         self.optimizer = optimizer
         self.evaluator = evaluator
         self.criterion = criterion
-        self.training_set = training_set
+        self.training_loader = training_loader
         self.epochs = epochs
-        self.batch_size = batch_size
         self.eval_freq = eval_freq
+        self.notebook = notebook
         self.lr_scheduler = lr_scheduler
         self.early_stop = early_stop
         self.save_models = save_models
@@ -58,14 +57,18 @@ class Solver():
         self.model.to(self.device)
 
         # Optimizer and lr scheduling ...
-        training_loader = DataLoader(self.training_set, batch_size=self.batch_size,
-                                     shuffle=True)
 
-        for epoch in tqdm(range(self.epochs)):
+        if self.notebook:
+            from tqdm.notebook import tqdm, trange
+        else:
+            from tqdm import tqdm, trange
+
+        progressbar = trange(self.epochs, desc='Progress')
+        for epoch in progressbar:
             print(f"EPOCH {epoch + 1}: ")
 
             """ Training Block """
-            avg_loss = self._train_one_epoch(epoch, training_loader)
+            avg_loss = self._train_one_epoch(epoch, self.training_loader)
 
             """ Validation Block """
             if (epoch % self.eval_freq or
@@ -88,6 +91,12 @@ class Solver():
         self.model.train()
         running_loss = 0.
         final_loss = {}
+
+        if self.notebook:
+            from tqdm.notebook import tqdm, trange
+        else:
+            from tqdm import tqdm, trange
+
         # batch_iter = tqdm(enumerate(training_loader), 'Training',
         #                  total=len(training_loader), leave=False)
         batch_iter = enumerate(training_loader)
@@ -114,39 +123,53 @@ class Solver():
         return final_loss
 
 
-def training_pipeline(hyper: dict, log_level: str, exp_name: str):
+def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str):
+    """..."""
+    """Setup hyperparameters"""
     train_setup = {k.lower(): v for k, v in hyper['SETUP'].items()}
     hyper = {k.lower(): v for k, v in hyper['HYPERPARAMETERS'].items()}
 
-    # TODO: implement custom DataLoader
     raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
     dataset = train_setup['dataset']
     task = train_setup['task']
     ids = list(set([x.split('_')[0] for x in os.listdir(raw_data)]))
+    random_seed = 42
+    test_size = 0.33
 
+    """Initalize Logger """
+    init_logger(ExeModes.TRAIN.name, log_level, setup.LOG_DIR, mode=ExeModes.TRAIN)
+    train_logger = logging.getLogger(ExeModes.TRAIN.name)
+    train_logger.info("Start training '%s'...")
+
+    """Setup Data Generator"""
     partition = {'train': (train_test_split(
-        ids, test_size=0.33, random_state=42))[0], 'validation': (train_test_split(
-        ids, test_size=0.33, random_state=42))[1]}
+        ids, test_size=test_size, random_state=random_seed))[0], 'validation': (train_test_split(
+        ids, test_size=test_size, random_state=random_seed))[1]}
 
     shape = (256, 256)
-    transform = transforms.Compose([
-        # Data Preprocessing
+    pre_transform = transforms.Compose([
         Create2D('y'),
         AddChannel(axs=0),
         Rescale(shape)
     ])
 
-    init_logger(ExeModes.TRAIN.name, log_level, setup.LOG_DIR, mode=ExeModes.TRAIN)
-    train_logger = logging.getLogger(ExeModes.TRAIN.name)
-    train_logger.info("Start training '%s'...")
+    # transform = transforms.Compose([
+    #     Rescale(shape)
+    # ])
 
-    # Data Generator
-    training_set = DatasetHandler(partition['train'], dataset=dataset, task=task,
-                                  transform=transform)
-    validation_set = DatasetHandler(partition['validation'], dataset=dataset,
-                                    task=task, transform=transform)
+    """Data Generator"""
+    training_set = SegmentationDataset(partition['train'], dataset=dataset,
+                                       transform=None, use_cache=True,
+                                       pre_transform=pre_transform)
+    validation_set = SegmentationDataset(partition['validation'], dataset=dataset,
+                                         transform=None, use_cache=True,
+                                         pre_transform=pre_transform)
 
-    # Training
+    training_loader = DataLoader(training_set, batch_size=hyper['batch_size'], shuffle=True)
+    validation_loader = DataLoader(validation_set, batch_size=hyper['batch_size'],
+                                   shuffle=True)
+
+    """Training"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model = UNet()
@@ -155,19 +178,19 @@ def training_pipeline(hyper: dict, log_level: str, exp_name: str):
     optimizer = torch.optim.Adam(model.parameters(), lr=hyper['learning_rate'])
     eval_metric = DiceLoss()
     # criterion = torch.nn.CrossEntropyLoss()
-    evaluator = Evaluator(validation_set=validation_set,
+    evaluator = Evaluator(validation_loader=validation_loader,
                           eval_metric=eval_metric,
                           device=device,
-                          batch_size=hyper['batch_size'])
+                          notebook=notebook)
 
     solver = Solver(model=model,
                     device=device,
                     optimizer=optimizer,
                     evaluator=evaluator,
                     criterion=eval_metric,
-                    training_set=training_set,
+                    training_loader=training_loader,
+                    notebook=notebook,
                     epochs=hyper['epochs'],
-                    batch_size=hyper['batch_size'],
                     eval_freq=hyper['eval_every'])
 
     solver.train()
