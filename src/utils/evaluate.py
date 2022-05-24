@@ -2,16 +2,18 @@ import torch
 from torch.utils.data import DataLoader
 
 from utils.logging import *
+from utils.visualization import plot_images_in_row
 
 
 class Evaluator():
-    def __init__(self, validation_loader, eval_metric, device, notebook):
+    def __init__(self, validation_loader, eval_metric, device, notebook, verbose=False):
         self.validation_loader = validation_loader
         self.eval_metric = eval_metric
         self.device = device
         self.notebook = notebook
+        self.verbose = verbose
 
-    def validate(self, model, lr_scheduler, epoch_index):
+    def validate(self, model, epoch_index):
         model.eval()
         running_loss = 0.
         val_loss = 0.
@@ -35,9 +37,11 @@ class Evaluator():
 
                 if i + 1 == len(self.validation_loader):
                     val_loss = running_loss / len(self.validation_loader)
-                    lr_scheduler.step(val_loss)
                     print(f"\nThe validation loss of epoch {epoch_index} is: {val_loss}")
                     running_loss = 0.
+
+                if self.verbose:
+                    plot_images_in_row([image[0], label[0], pred[0]])
 
         batch_iter.close()
 

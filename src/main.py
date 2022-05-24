@@ -8,6 +8,7 @@ from pprint import pprint
 import systemsetup as setup
 from utils.modes import ExeModes
 from utils.train import training_pipeline
+from utils.test import inference_pipeline
 
 configs = setup.CONFIG_DIR + 'base_model.yaml'
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -20,7 +21,7 @@ with open(configs, 'r') as stream:
 
 mode_handler = {
     ExeModes.TRAIN.value: training_pipeline,
-    # ExeModes.TEST.value: test_pipeline,
+    ExeModes.TEST.value: inference_pipeline,
     # ExeModes.TRAIN_TEST.value: train_test_pipeline,
 }
 

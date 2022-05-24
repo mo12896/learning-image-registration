@@ -6,18 +6,21 @@ import sys
 sys.path.append('../')
 
 import wandb
+import torch
 # from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
 
 import systemsetup as setup
 from utils.modes import ExeModes
+from models.unet import UNet
 
 use_wandb = True
 wandb_run = None
 
 
 def init_wandb_logger():
-    global wand_run
+    global wandb_run
+    global use_wandb
     if use_wandb:
         wandb_run = wandb.init()
 
@@ -67,6 +70,15 @@ def log_stuff(loss, iteration):
 
     if use_wandb:
         wandb.log(loss, step=iteration)
+
+
+def log_best_model():
+    test_input = torch.randn(size=(1, 1, 512, 512), dtype=torch.float32)
+    final_model = UNet()
+    final_model.load_state_dict(
+        torch.load(os.path.join(setup.BASE_DIR, 'models/best.model')))
+    torch.onnx.export(final_model, test_input, os.path.join(setup.BASE_DIR, 'models/best.onnx'))
+    wandb.save("best.onnx")
 
 # def log_model_tensorboard(avg_loss, avg_vloss):
 # 	writer = SummaryWriter(setup.BASE_DIR + 'logs/tensorboard')

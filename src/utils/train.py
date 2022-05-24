@@ -1,5 +1,6 @@
 import os
 import logging
+from copy import deepcopy
 import yaml
 
 import torch
@@ -39,7 +40,7 @@ class Solver():
                  notebook: bool,
                  lr_scheduler: torch.optim.lr_scheduler = None,
                  early_stop: bool = False,
-                 save_models: bool = False):
+                 save_models: bool = True):
 
         self.model = model
         self.device = device
@@ -53,11 +54,10 @@ class Solver():
         self.lr_scheduler = lr_scheduler
         self.early_stop = early_stop
         self.save_models = save_models
+        self.best_val_loss = 10000000
 
     def train(self):
         self.model.to(self.device)
-
-        # Optimizer and lr scheduling ...
 
         if self.notebook:
             from tqdm.notebook import tqdm, trange
@@ -67,24 +67,31 @@ class Solver():
         progressbar = trange(self.epochs, desc='Progress')
         for epoch in progressbar:
             print(f"EPOCH {epoch + 1}: ")
-            loggers = {}
+            logger = {}
 
             """ Training Block """
             avg_loss = self._train_one_epoch(epoch)
-            loggers['TrainingLoss'] = avg_loss
+            logger['TrainingLoss'] = avg_loss
 
             """ Validation Block """
             if (epoch % self.eval_freq or
                     epoch == self.epochs):
-                val_results = self.evaluator.validate(self.model, self.lr_scheduler, epoch)
-                loggers['ValidationLoss'] = val_results
-                loggers['Learning Rate'] = self.optimizer.param_groups[0]['lr']
+                current_val_loss = self.evaluator.validate(self.model, epoch)
+                self.lr_scheduler.step(current_val_loss)
 
-            log_stuff(loggers, epoch)
+                logger['ValidationLoss'] = current_val_loss
+                logger['Learning Rate'] = self.optimizer.param_groups[0]['lr']
 
-            # Save intermediate model after each epoch
-            if self.save_models:
-                raise NotImplementedError
+                # Save best model
+                if current_val_loss < self.best_val_loss:
+                    self.best_val_loss = current_val_loss
+                    print(f"\nCurrent best validation loss: {self.best_val_loss}")
+                    print(f"\nSaving best model for epoch: {epoch + 1}\n")
+                    if self.save_models:
+                        torch.save(self.model.state_dict(),
+                                   os.path.join(setup.BASE_DIR, 'models/best.model'))
+
+                log_stuff(logger, epoch)
 
             # Perform early stopping based on criteria:
             if self.early_stop:
@@ -92,7 +99,7 @@ class Solver():
 
         # Save final model (use wandb.save() in .onnx format)
         if self.save_models:
-            raise NotImplementedError
+            log_best_model()
 
     def _train_one_epoch(self, epoch_index):
         self.model.train()
@@ -186,7 +193,7 @@ def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str
                     training_loader=training_loader,
                     notebook=notebook,
                     epochs=hyper['epochs'],
-                    eval_freq=hyper['eval_every'])
+                    eval_freq=hyper['eval_every'], )
 
     solver.train()
 
