@@ -11,10 +11,10 @@ class Evaluator():
         self.device = device
         self.notebook = notebook
 
-    def validate(self, model, epoch_index):
+    def validate(self, model, lr_scheduler, epoch_index):
         model.eval()
         running_loss = 0.
-        final_loss = 0.
+        val_loss = 0.
 
         if self.notebook:
             from tqdm.notebook import tqdm, trange
@@ -34,10 +34,11 @@ class Evaluator():
                 batch_iter.set_description(f'Validation: (loss {loss.item():.4f})')
 
                 if i + 1 == len(self.validation_loader):
-                    final_loss = running_loss / len(self.validation_loader)
-                    print(f"\nThe final loss of epoch {epoch_index} is: {final_loss}")
+                    val_loss = running_loss / len(self.validation_loader)
+                    lr_scheduler.step(val_loss)
+                    print(f"\nThe validation loss of epoch {epoch_index} is: {val_loss}")
                     running_loss = 0.
 
         batch_iter.close()
 
-        return final_loss
+        return val_loss

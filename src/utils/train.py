@@ -4,6 +4,7 @@ import yaml
 
 import torch
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.optim
 
 import torchvision
@@ -66,19 +67,20 @@ class Solver():
         progressbar = trange(self.epochs, desc='Progress')
         for epoch in progressbar:
             print(f"EPOCH {epoch + 1}: ")
-            losses = {}
+            loggers = {}
 
             """ Training Block """
             avg_loss = self._train_one_epoch(epoch)
-            losses['TrainingLoss'] = avg_loss
+            loggers['TrainingLoss'] = avg_loss
 
             """ Validation Block """
             if (epoch % self.eval_freq or
                     epoch == self.epochs):
-                val_results = self.evaluator.validate(self.model, epoch)
-                losses['ValidationLoss'] = val_results
+                val_results = self.evaluator.validate(self.model, self.lr_scheduler, epoch)
+                loggers['ValidationLoss'] = val_results
+                loggers['Learning Rate'] = self.optimizer.param_groups[0]['lr']
 
-            log_losses(losses, epoch)
+            log_stuff(loggers, epoch)
 
             # Save intermediate model after each epoch
             if self.save_models:
@@ -167,6 +169,7 @@ def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str
     # train_logger.info(f"{model.count_parameters()} parameters in the model.")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=hyper['learning_rate'])
+    scheduler = ReduceLROnPlateau(optimizer, 'min')
     eval_metric = DiceLoss()
     # criterion = torch.nn.CrossEntropyLoss()
     evaluator = Evaluator(validation_loader=validation_loader,
@@ -177,6 +180,7 @@ def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str
     solver = Solver(model=model,
                     device=device,
                     optimizer=optimizer,
+                    lr_scheduler=scheduler,
                     evaluator=evaluator,
                     criterion=eval_metric,
                     training_loader=training_loader,
