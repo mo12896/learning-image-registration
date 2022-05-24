@@ -124,19 +124,23 @@ class Solver():
         return final_loss
 
 
-def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str):
+def training_pipeline(configs: dict, log_level: str, notebook: bool, exp_name: str):
     """..."""
     """Setup hyperparameters"""
-    train_setup = {k.lower(): v for k, v in hyper['SETUP'].items()}
-    hyper = {k.lower(): v for k, v in hyper['HYPERPARAMETERS'].items()}
+    train_setup = {k.lower(): v for k, v in configs['SETUP'].items()}
+    hyper = {k.lower(): v for k, v in configs['HYPERPARAMETERS'].items()}
 
     raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
     dataset = train_setup['dataset']
     ids = list(set([x.split('_')[0] for x in os.listdir(raw_data)]))
     random_seed = train_setup['random_seed']
     test_size = train_setup['split']
+    patience = hyper['patience']
 
     """Initalize Logger """
+    folders = [setup.MODEL_DIR, setup.LOG_DIR, setup.WANDB_DIR]
+    clean_logger(folders)
+
     init_logger(ExeModes.TRAIN.name, log_level, setup.LOG_DIR, mode=ExeModes.TRAIN)
     train_logger = logging.getLogger(ExeModes.TRAIN.name)
     train_logger.info("Start training '%s'...")
@@ -176,7 +180,7 @@ def training_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: str
     # train_logger.info(f"{model.count_parameters()} parameters in the model.")
 
     optimizer = torch.optim.Adam(model.parameters(), lr=hyper['learning_rate'])
-    scheduler = ReduceLROnPlateau(optimizer, 'min')
+    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=patience)
     eval_metric = DiceLoss()
     # criterion = torch.nn.CrossEntropyLoss()
     evaluator = Evaluator(validation_loader=validation_loader,

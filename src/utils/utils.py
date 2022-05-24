@@ -1,5 +1,7 @@
 from time import perf_counter
 import logging
+import os, shutil
+import glob
 import functools
 import sys
 from torch.utils.data import DataLoader
@@ -55,6 +57,19 @@ def inspect_single_data_pair(class_name, ids, dataset, transform=None):
     fig.add_subplot(1, 2, 2)
     plt.imshow(y.view(y.shape[1], y.shape[2], 1))
     plt.show()
+
+
+def remove_folder_contents(folder_path: str):
+    folder = glob.glob(folder_path + '*')
+    for f in folder:
+        if os.path.isfile(f) or os.path.islink(f):
+            os.unlink(f)
+        elif os.path.isdir(f):
+            shutil.rmtree(f)
+        else:
+            raise AttributeError(
+                f"You try to delete something which is either a file nor a folder!")
+    print(f"\nRemoved all files from folder: {folder_path}")
 
 
 class LearningRateFinder:

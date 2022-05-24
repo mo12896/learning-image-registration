@@ -32,10 +32,10 @@ def inference_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: st
     random_seed = train_setup['random_seed']
     test_size = train_setup['split']
 
-    """Initalize Logger """
+    """Initalize Logger"""
     init_logger(ExeModes.TEST.name, log_level, setup.LOG_DIR, mode=ExeModes.TEST)
-    train_logger = logging.getLogger(ExeModes.TEST.name)
-    train_logger.info("Start training '%s'...")
+    test_logger = logging.getLogger(ExeModes.TEST.name)
+    test_logger.info("Start inference '%s'...")
 
     """Setup Data Generator"""
     partition = {'train': (train_test_split(
@@ -56,7 +56,7 @@ def inference_pipeline(hyper: dict, log_level: str, notebook: bool, exp_name: st
     validation_loader = DataLoader(validation_set, batch_size=hyper['batch_size'],
                                    shuffle=True)
 
-    """Training"""
+    """Inference"""
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     model = UNet()

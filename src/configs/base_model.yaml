@@ -17,6 +17,8 @@ SETUP:
 
 HYPERPARAMETERS:
   LEARNING_RATE: 0.01
+  PATIENCE: 10
+  # note: regularly check wandb logs for GPU Memory Access -> increase/decrease batch_size
   BATCH_SIZE: 2
   EPOCHS: 200
   EVAL_EVERY: 2

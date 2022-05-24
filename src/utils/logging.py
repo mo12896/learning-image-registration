@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import systemsetup as setup
 from utils.modes import ExeModes
 from models.unet import UNet
+from utils.utils import *
 
 use_wandb = True
 wandb_run = None
@@ -63,6 +64,13 @@ def init_logger(logger_name: str, log_dir: str, log_level: str, mode: ExeModes):
     if mode == ExeModes.TRAIN:
         init_wandb_logger()
 
+    print(f"Initialized logger functionalities!")
+
+
+def clean_logger(folders: list):
+    for folder in folders:
+        remove_folder_contents(folder)
+
 
 def log_stuff(loss, iteration):
     train_logger = logging.getLogger()
@@ -76,14 +84,15 @@ def log_best_model():
     test_input = torch.randn(size=(1, 1, 512, 512), dtype=torch.float32)
     final_model = UNet()
     final_model.load_state_dict(
-        torch.load(os.path.join(setup.BASE_DIR, 'models/best.model')))
-    torch.onnx.export(final_model, test_input, os.path.join(setup.BASE_DIR, 'models/best.onnx'))
-    wandb.save("best.onnx")
+        torch.load(os.path.join(setup.MODEL_DIR, 'best.model')))
+    best_path = os.path.join(setup.MODEL_DIR, 'best.onnx')
+    torch.onnx.export(final_model, test_input, best_path)
+    wandb.save(best_path)
 
-# def log_model_tensorboard(avg_loss, avg_vloss):
-# 	writer = SummaryWriter(setup.BASE_DIR + 'logs/tensorboard')
-# 	# also: images, embeddings, model graph
-# 	writer.add_scalars('Training vs. Validation Loss',
-# 	                   {'Training': avg_loss, 'Validation': avg_vloss})
-# 	writer.flush()
-# 	writer.close()
+    # def log_model_tensorboard(avg_loss, avg_vloss):
+    # 	writer = SummaryWriter(setup.BASE_DIR + 'logs/tensorboard')
+    # 	# also: images, embeddings, model graph
+    # 	writer.add_scalars('Training vs. Validation Loss',
+    # 	                   {'Training': avg_loss, 'Validation': avg_vloss})
+    # 	writer.flush()
+    # 	writer.close()
