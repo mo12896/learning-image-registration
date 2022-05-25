@@ -37,11 +37,11 @@ def timer(func):
     return time_wrapper
 
 
-def inspect_single_data_pair(class_name, ids, dataset, transform=None):
+def inspect_single_data_pair(class_name, ids, dataset, transform=None, pre_transform=None):
     # load single image pair
     class_ = getattr(data.dataset, class_name)
-    data_set = class_(ids, dataset=dataset, transform=transform)
-    dataloader = DataLoader(data_set, batch_size=1, shuffle=True)
+    data_set = class_(ids, dataset=dataset, transform=transform, use_cache=True, pre_transform=pre_transform)
+    dataloader = DataLoader(data_set, batch_size=1, shuffle=False)
     x, y, _ = next(iter(dataloader))
 
     # get some statistics
@@ -53,9 +53,9 @@ def inspect_single_data_pair(class_name, ids, dataset, transform=None):
     # plot images
     fig = plt.figure()
     fig.add_subplot(1, 2, 1)
-    plt.imshow(x.view(x.shape[1], x.shape[2], 1))
+    plt.imshow(x[0].view(x[0].shape[1], x[0].shape[2], 1))
     fig.add_subplot(1, 2, 2)
-    plt.imshow(y.view(y.shape[1], y.shape[2], 1))
+    plt.imshow(y[0].view(y[0].shape[1], y[0].shape[2], 1))
     plt.show()
 
 

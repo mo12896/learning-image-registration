@@ -11,6 +11,7 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset
+from transforms.transforms_handler import *
 import random
 
 import systemsetup as setup
@@ -64,8 +65,12 @@ class SegmentationDataset(Dataset):
                 raise IndexError(f"Index {index} is out of range!")
 
             if self.use_cache:
-                # TODO: change as soon as new transforms exist!
-                return self.cached_data[index]
+                # TODO: change placeholder into new transform API!
+                x, y, img_id = self.cached_data[index]
+                x, y = x.numpy(), y.numpy()
+                x, y = self.transform(x, y)
+                x, y = torch.Tensor(x), torch.Tensor(y)
+                return [x, y, img_id]
             else:
                 x, y, img_id = self._get_item_from_index(index)
             return self.transform_data(x, y, img_id, tf=self.transform)

@@ -20,10 +20,12 @@ import systemsetup as setup
 from data.dataset import SegmentationDataset, RegistrationDataset
 from utils.evaluate import Evaluator
 from utils.modes import ExeModes
-from features.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
+from transforms.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
+from transforms.transforms_handler import *
+from transforms.image_transforms import RandomVerticalFlip
 from utils.eval_metrics import DiceLoss
-from models.model_loader import ModelLoader
-from models.unet import UNet
+from model_zoo.model_loader import ModelLoader
+from model_zoo.unet import UNet
 from utils.logging import *
 
 
@@ -150,23 +152,23 @@ def training_pipeline(configs: dict, log_level: str, notebook: bool, exp_name: s
         ids, test_size=test_size, random_state=random_seed))[0], 'validation': (train_test_split(
         ids, test_size=test_size, random_state=random_seed))[1]}
 
-    shape = (256, 256)
     pre_transform = transforms.Compose([
         Create2D('y'),
         AddChannel(axs=0),
-        Rescale(shape)
+        Rescale((256, 256))
     ])
 
-    # transform = transforms.Compose([
-    #     Rescale(shape)
-    # ])
+    # TODO: use separate transforms for validation!
+    transform = ComposeDouble([
+        FunctionWrapperDouble(RandomVerticalFlip(prob=0.5)),
+    ])
 
     """Data Generator"""
     training_set = SegmentationDataset(partition['train'], dataset=dataset,
-                                       transform=None, use_cache=True,
+                                       transform=transform, use_cache=True,
                                        pre_transform=pre_transform)
     validation_set = SegmentationDataset(partition['validation'], dataset=dataset,
-                                         transform=None, use_cache=True,
+                                         transform=transform, use_cache=True,
                                          pre_transform=pre_transform)
 
     training_loader = DataLoader(training_set, batch_size=hyper['batch_size'], shuffle=True)

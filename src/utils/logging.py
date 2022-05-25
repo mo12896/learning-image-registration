@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 import systemsetup as setup
 from utils.modes import ExeModes
-from models.unet import UNet
+from model_zoo.unet import UNet
 from utils.utils import *
 
 use_wandb = True

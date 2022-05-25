@@ -14,7 +14,7 @@ from data.dataset import SegmentationDataset, RegistrationDataset
 from utils.modes import ExeModes
 from utils.logging import *
 from utils.evaluate import Evaluator
-from features.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
+from transforms.tensor_transforms import Create2D, Rescale, AddChannel, NormalizeSample
 from utils.eval_metrics import DiceLoss
 from utils.visualization import plot_images_in_row
 

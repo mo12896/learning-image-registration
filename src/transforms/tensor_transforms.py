@@ -4,6 +4,7 @@ from torchvision.transforms.transforms import Resize, ToPILImage, ToTensor, Norm
 import torch.nn.functional as F
 
 
+# TODO: change to new transforms API + numpy convention!
 class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
