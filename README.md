@@ -2,7 +2,7 @@
 
 ### 1. Installation using conda env
 
-Use the following code to clone and navigate into the repo.
+Use the following code to clone and navigate into the repo:
 
 ```
 git clone https://github.com/mo12896/ImageRegistration.git
