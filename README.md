@@ -5,8 +5,8 @@
 Use the following code to clone and navigate into the repo:
 
 ```
-git clone https://github.com/mo12896/ImageRegistration.git
-cd ImageRegistration
+git clone https://github.com/mo12896/learning-image-registration.git
+cd learning-image-registration
 ```
 
 Then use the setup.sh to setup a conda environment for this project.
