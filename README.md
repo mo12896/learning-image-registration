@@ -1,4 +1,4 @@
-# Large, Nonlinear Image Registration
+# Large, Nonlinear Image Registration (for lung CTs)
 
 ### 1. Installation using conda env
 
@@ -11,7 +11,17 @@ cd ImageRegistration
 
 Then use the setup.sh to setup a conda environment for this project.
 
-### 2. Idea for novel Registration Approach
+### 2. Setup and trigger different pipelines
+
+First navigate to the src/systemsetup.py and ensure that the BASEDIR variable is configured appropriately to your
+system. To setup a config file, i.e. metadata, the model, pipeline mode, and hyperparameters, customize or use a given
+YAML file in the configs folder. Lastly, call the main.py, providing it a flag with the name of your config file, i.e.:
+
+```
+python main.py --config <NAME-OF-CONFIGFILE>
+```
+
+### 3. Idea for novel Registration Approach
 
 ![plot](./docs/pipeline.png)
 
@@ -27,7 +37,7 @@ By applying *k*-1 registrations along the image-trajectory, a concatination of t
 leads to a final deformation field. Finally, single instance optimization - as shown
 by [Teed et al.](https://arxiv.org/abs/2003.12039) - can be employed, to squeeze out the last bits from this approach.
 
-### 3. TODOs:
+### 4. TODOs:
 
 - [x] Setup general training and inference tools
 - [x] Train vanilla U-Net for image segmentation
