@@ -13,9 +13,10 @@ Then use the setup.sh to setup a conda environment for this project.
 
 ### 2. Setup and trigger different pipelines
 
-First navigate to the src/systemsetup.py and ensure that the BASEDIR variable is configured appropriately to your
+First, navigate to the src/systemsetup.py and ensure that the BASEDIR variable is configured appropriately to your
 system. To setup a config file, i.e. metadata, the model, pipeline mode, and hyperparameters, customize or use a given
-YAML file in the configs folder. Lastly, call the main.py, providing it a flag with the name of your config file, i.e.:
+YAML file in the configs folder. Lastly, trigger the predefined pipeline by calling main.py, providing it a flag with
+the name of your config file, i.e.:
 
 ```
 python main.py --config <NAME-OF-CONFIGFILE>
