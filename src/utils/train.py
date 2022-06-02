@@ -134,7 +134,6 @@ def training_pipeline(configs: dict, log_level: str, notebook: bool, exp_name: s
 
     raw_data = setup.RAW_DATA_DIR + 'EMPIRE10/scans/'
     dataset = train_setup['dataset']
-    ids = list(set([x.split('_')[0] for x in os.listdir(raw_data)]))
     random_seed = train_setup['random_seed']
     test_size = train_setup['split']
     patience = hyper['patience']
@@ -148,6 +147,8 @@ def training_pipeline(configs: dict, log_level: str, notebook: bool, exp_name: s
     train_logger.info("Start training '%s'...")
 
     """Setup Data Generator"""
+    # TODO: different splitter for segmentation and registration!?
+    ids = list(set([x.split('_')[0] for x in os.listdir(raw_data)]))
     partition = {'train': (train_test_split(
         ids, test_size=test_size, random_state=random_seed))[0], 'validation': (train_test_split(
         ids, test_size=test_size, random_state=random_seed))[1]}

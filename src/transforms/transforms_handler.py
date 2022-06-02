@@ -1,3 +1,6 @@
+"""Transformation Handler, inspired by:
+https://towardsdatascience.com/creating-and-training-a-u-net-model-with-pytorch-for-2d-3d-semantic-segmentation-dataset-fb1f7f80fe55"""
+
 from typing import List, Callable, Tuple, Union
 
 import numpy as np
